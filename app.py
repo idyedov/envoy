@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from flask import Flask, Blueprint, render_template, redirect, url_for, request, session, jsonify
 from flask_oauthlib.client import OAuth
 from flask.ext.bootstrap import Bootstrap
-from config import config
 
 main = Blueprint('main', __name__)
 oauth = OAuth()
@@ -21,8 +20,7 @@ bootstrap = Bootstrap()
 
 def create_app(config_name):
     app = Flask(__name__)
-    app.config.from_object(config[config_name])
-    config[config_name].init_app(app)
+    app.config.from_pyfile(config_name)
 
     bootstrap.init_app(app)
     oauth.init_app(app)
@@ -30,10 +28,6 @@ def create_app(config_name):
     if app.debug:
         from flask_debugtoolbar import DebugToolbarExtension
         DebugToolbarExtension(app)
-
-    if not app.debug and not app.testing and not app.config['SSL_DISABLE']:
-        from flask.ext.sslify import SSLify
-        SSLify(app)
 
     app.register_blueprint(main)
 

@@ -1,4 +1,0 @@
--r common.txt
-Flask-DebugToolbar==0.9.0
-colorama==0.3.1
-coverage==3.7.1

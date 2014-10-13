@@ -43,3 +43,4 @@ venv
 
 .idea
 *.iml
+config.py
