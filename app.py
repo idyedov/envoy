@@ -1,7 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-from flask import Flask, Blueprint, render_template, redirect, url_for, request, session, jsonify
+from flask import Flask, Blueprint, Response, render_template, redirect, url_for, request, session, stream_with_context, jsonify
 from flask_oauthlib.client import OAuth
 from flask.ext.bootstrap import Bootstrap
+import requests
 
 main = Blueprint('main', __name__)
 oauth = OAuth()
@@ -17,6 +18,16 @@ google = oauth.remote_app('google',
                           app_key='GOOGLE')
 bootstrap = Bootstrap()
 
+def create_proxy_view(definition):
+    def _subview(path=""):
+        if 'google_token' not in session:
+            return redirect(url_for('.login'))
+
+        req = requests.get('{}{}'.format(definition['url'], path), stream = True)
+        return Response(stream_with_context(req.iter_content()), content_type = req.headers['content-type'])
+
+    return _subview
+
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -31,6 +42,11 @@ def create_app(config_name):
 
     app.register_blueprint(main)
 
+    for app_definition in app.config['APPS']:
+        view = create_proxy_view(app_definition)
+        app.add_url_rule('/{}/'.format(app_definition['name']), app_definition['name'], view)
+        app.add_url_rule('/{}/<path:path>'.format(app_definition['name']), app_definition['name'], view)
+
     return app
 
 
@@ -40,7 +56,7 @@ def index():
         return redirect(url_for('.login'))
 
     me = google.get('userinfo')
-    return jsonify({"data": me.data})
+    return jsonify({'data': me.data})
 
 
 @main.route('/login')
@@ -65,7 +81,7 @@ def authorized():
         )
     session['google_token'] = (resp['access_token'], '')
     me = google.get('userinfo')
-    return jsonify({"data": me.data})
+    return jsonify({'data': me.data})
 
 
 @google.tokengetter
