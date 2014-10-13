@@ -7,6 +7,7 @@ GOOGLE_CONSUMER_SECRET = "SECRET"
 DEBUG = False
 TESTING = False
 APPS = [
+  # name is the url route, needs to be url-safe
   {"name": "jenkins", "url": "http://localhost:8080"},
   {"name": "munin", "url": "http://localhost/munin"}
 ]
