@@ -1,5 +1,5 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-from flask import Flask, Blueprint, Response, render_template, redirect, url_for, request, session, stream_with_context, jsonify
+from flask import Flask, Blueprint, Response, render_template, redirect, url_for, request, session, stream_with_context, jsonify, current_app
 from flask_oauthlib.client import OAuth, OAuthException
 from flask.ext.bootstrap import Bootstrap
 import requests
@@ -81,6 +81,9 @@ def create_app(config_name):
 @main.route('/login')
 def login():
     callback = url_for('.authorized', _external=True)
+    google_domain = current_app.config['GOOGLE_DOMAIN']
+    if google_domain:
+        return google.authorize(callback=callback, hd=google_domain)
     return google.authorize(callback=callback)
 
 
