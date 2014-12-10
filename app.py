@@ -23,8 +23,15 @@ def create_proxy_view(definition):
         if 'google_token' not in session:
             return redirect(url_for('.login'))
 
-        req = requests.get('{}{}'.format(definition['url'], path), stream = True)
-        return Response(stream_with_context(req.iter_content()), content_type = req.headers['content-type'])
+        url = '{}{}{}{}'.format(
+            definition['url'],
+            '' if definition['url'].endswith('/') else '/',
+            path,
+            '?{}'.format(request.query_string) if request.query_string else ''
+        )
+
+        req = requests.get(url, stream=True)
+        return Response(stream_with_context(req.iter_content()), content_type=req.headers['content-type'])
 
     return _subview
 
@@ -42,21 +49,29 @@ def create_app(config_name):
 
     app.register_blueprint(main)
 
+    default_app_set = False
     for app_definition in app.config['APPS']:
         view = create_proxy_view(app_definition)
-        app.add_url_rule('/{}/'.format(app_definition['name']), app_definition['name'], view)
-        app.add_url_rule('/{}/<path:path>'.format(app_definition['name']), app_definition['name'], view)
+
+        if app_definition['name'] == app.config['DEFAULT_APP']:
+            app.add_url_rule('/', app_definition['name'], view)
+            app.add_url_rule('/<path:path>', app_definition['name'], view)
+            default_app_set = True
+        else:
+            app.add_url_rule('/{}/'.format(app_definition['name']), app_definition['name'], view)
+            app.add_url_rule('/{}/<path:path>'.format(app_definition['name']), app_definition['name'], view)
+
+    if not default_app_set:
+        def _index_subview(path=""):
+            if 'google_token' not in session:
+                return redirect(url_for('.login'))
+
+            me = google.get('userinfo')
+            return jsonify({'data': me.data})
+
+        app.add_url_rule('/', 'index', _index_subview)
 
     return app
-
-
-@main.route('/')
-def index():
-    if 'google_token' not in session:
-        return redirect(url_for('.login'))
-
-    me = google.get('userinfo')
-    return jsonify({'data': me.data})
 
 
 @main.route('/login')

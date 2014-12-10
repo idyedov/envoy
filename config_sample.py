@@ -11,3 +11,5 @@ APPS = [
   {"name": "jenkins", "url": "http://localhost:8080"},
   {"name": "munin", "url": "http://localhost/munin"}
 ]
+# set to one of the above to be displayed as the root app
+DEFAULT_APP = None
