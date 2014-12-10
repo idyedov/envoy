@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 from flask import Flask, Blueprint, Response, render_template, redirect, url_for, request, session, stream_with_context, jsonify
-from flask_oauthlib.client import OAuth
+from flask_oauthlib.client import OAuth, OAuthException
 from flask.ext.bootstrap import Bootstrap
 import requests
 
@@ -21,7 +21,9 @@ bootstrap = Bootstrap()
 def create_proxy_view(definition):
     def _subview(path=""):
         if 'google_token' not in session:
-            return redirect('/login')
+            response = redirect('/login')
+            response.set_cookie('next', path or '/')
+            return response
 
         url = '{}{}{}{}'.format(
             definition['url'],
@@ -64,7 +66,9 @@ def create_app(config_name):
     if not default_app_set:
         def _index_subview(path=""):
             if 'google_token' not in session:
-                return redirect('/login')
+                response = redirect('/login')
+                response.set_cookie('next', '/')
+                return response
 
             me = google.get('userinfo')
             return jsonify({'data': me.data})
@@ -89,14 +93,18 @@ def logout():
 @main.route('/authorized')
 def authorized():
     resp = google.authorized_response()
+
     if resp is None:
-        return 'Access denied: reason=%s error=%s' % (
-            request.args['error_reason'],
-            request.args['error_description']
+        return 'Access denied'
+
+    if isinstance(resp, OAuthException):
+        return 'Access denied: error={} description={}'.format(
+            resp.data.get('error'),
+            resp.data.get('error_description')
         )
+
     session['google_token'] = (resp['access_token'], '')
-    me = google.get('userinfo')
-    return jsonify({'data': me.data})
+    return redirect(request.cookies.get('next', '/'))
 
 
 @google.tokengetter
