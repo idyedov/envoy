@@ -21,7 +21,7 @@ bootstrap = Bootstrap()
 def create_proxy_view(definition):
     def _subview(path=""):
         if 'google_token' not in session:
-            return redirect(url_for('.login'))
+            return redirect('/login')
 
         url = '{}{}{}{}'.format(
             definition['url'],
@@ -64,7 +64,7 @@ def create_app(config_name):
     if not default_app_set:
         def _index_subview(path=""):
             if 'google_token' not in session:
-                return redirect(url_for('.login'))
+                return redirect('/login')
 
             me = google.get('userinfo')
             return jsonify({'data': me.data})
@@ -83,7 +83,7 @@ def login():
 @main.route('/logout')
 def logout():
     session.pop('google_token', None)
-    return redirect(url_for('.index'))
+    return redirect('/')
 
 
 @main.route('/authorized')
