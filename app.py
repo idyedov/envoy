@@ -32,8 +32,11 @@ def create_proxy_view(definition):
             '?{}'.format(request.query_string) if request.query_string else ''
         )
 
-        req = requests.get(url, stream=True)
-        return Response(stream_with_context(req.iter_content()), content_type=req.headers['content-type'])
+        #req = requests.get(url, stream=True)
+        #return Response(stream_with_context(req.iter_content()), content_type=req.headers['content-type'])
+
+        req = requests.get(url)
+        return Response(req.content, content_type=req.headers['content-type'])
 
     return _subview
 
