@@ -35,7 +35,11 @@ def create_proxy_view(definition):
         #req = requests.get(url, stream=True)
         #return Response(stream_with_context(req.iter_content()), content_type=req.headers['content-type'])
 
-        req = requests.get(url)
+        if request.method == 'POST':
+            data = request.stream.read()
+            req = requests.post(url, data=data, headers={'content-type': request.headers['content-type']})
+        else:
+            req = requests.get(url)
         return Response(req.content, content_type=req.headers['content-type'])
 
     return _subview
@@ -54,17 +58,18 @@ def create_app(config_name):
 
     app.register_blueprint(main)
 
+    methods = ['GET', 'HEAD', 'POST', 'PUT', 'OPTIONS']
     default_app_set = False
     for app_definition in app.config['APPS']:
         view = create_proxy_view(app_definition)
 
         if app_definition['name'] == app.config['DEFAULT_APP']:
-            app.add_url_rule('/', app_definition['name'], view)
-            app.add_url_rule('/<path:path>', app_definition['name'], view)
+            app.add_url_rule('/', app_definition['name'], view, methods=methods)
+            app.add_url_rule('/<path:path>', app_definition['name'], view, methods=methods)
             default_app_set = True
         else:
-            app.add_url_rule('/{}/'.format(app_definition['name']), app_definition['name'], view)
-            app.add_url_rule('/{}/<path:path>'.format(app_definition['name']), app_definition['name'], view)
+            app.add_url_rule('/{}/'.format(app_definition['name']), app_definition['name'], view, methods=methods)
+            app.add_url_rule('/{}/<path:path>'.format(app_definition['name']), app_definition['name'], view, methods=methods)
 
     if not default_app_set:
         def _index_subview(path=""):
